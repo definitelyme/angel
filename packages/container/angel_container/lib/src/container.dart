@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'exception.dart';
 import 'reflector.dart';
 
@@ -87,8 +88,7 @@ class Container {
     } else if (futureType != null) {
       return make(futureType);
     } else {
-      throw ReflectionException(
-          'No injection for Future<$t2> or $t2 was found.');
+      throw ReflectionException('No injection for Future<$t2> or $t2 was found.');
     }
   }
 
@@ -125,10 +125,9 @@ class Container {
         return name.isEmpty || name == reflectedType.name;
       }
 
-      var constructor = reflectedType.constructors.firstWhere(
-          (c) => isDefault(c.name),
-          orElse: (() => throw ReflectionException(
-              '${reflectedType.name} has no default constructor, and therefore cannot be instantiated.')));
+      var constructor = reflectedType.constructors.firstWhere((c) => isDefault(c.name),
+          orElse: (() =>
+              throw ReflectionException('${reflectedType.name} has no default constructor, and therefore cannot be instantiated.')));
 
       for (var param in constructor.parameters) {
         var value = make(param.type.reflectedType);
@@ -140,13 +139,9 @@ class Container {
         }
       }
 
-      return reflectedType.newInstance(
-          isDefault(constructor.name) ? '' : constructor.name,
-          positional,
-          named, []).reflectee as T;
+      return reflectedType.newInstance(isDefault(constructor.name) ? '' : constructor.name, positional, named, []).reflectee as T;
     } else {
-      throw ReflectionException(
-          '$t2 is not a class, and therefore cannot be instantiated.');
+      throw ReflectionException('$t2 is not a class, and therefore cannot be instantiated.');
     }
   }
 
@@ -155,8 +150,7 @@ class Container {
   /// In many cases, you might prefer this to [registerFactory].
   ///
   /// Returns [f].
-  T Function(Container) registerLazySingleton<T>(T Function(Container) f,
-      {Type? as}) {
+  T Function(Container) registerLazySingleton<T>(T Function(Container) f, {Type? as}) {
     return registerFactory<T>(
       (container) {
         var r = f(container);
@@ -171,8 +165,7 @@ class Container {
   /// type within *this* container will return the result of [f].
   ///
   /// Returns [f].
-  T Function(Container) registerFactory<T>(T Function(Container) f,
-      {Type? as}) {
+  T Function(Container) registerFactory<T>(T Function(Container) f, {Type? as}) {
     Type t2 = T;
     if (as != null) {
       t2 = as;
@@ -219,8 +212,7 @@ class Container {
     } else if (_parent != null) {
       return _parent.findByName<T>(name);
     } else {
-      throw StateError(
-          'This container does not have a singleton named "$name".');
+      throw StateError('This container does not have a singleton named "$name".');
     }
   }
 
@@ -235,5 +227,31 @@ class Container {
 
     _namedSingletons[name] = object;
     return object;
+  }
+
+  /// Unregisters any factory, singleton, or named singleton from the container.
+  void unregister({Type? type, String? name}) {
+    assert(type != null || name != null, 'Kindly specify either a type or a name.');
+    assert(type == null || name == null, 'Kindly specify either a type or a name, not both.');
+
+    if (name != null) {
+      if (_namedSingletons.containsKey(name)) {
+        _namedSingletons.remove(name);
+      } else if (_parent != null) {
+        _parent.unregister(name: name);
+      } else {
+        throw StateError('This container does not have a singleton named "$name".');
+      }
+    } else {
+      if (_factories.containsKey(type)) {
+        _factories.remove(type);
+      } else if (_singletons.containsKey(type)) {
+        _singletons.remove(type);
+      } else if (_parent != null) {
+        _parent.unregister(type: type);
+      } else {
+        throw StateError('This container does not have a singleton or factory for $type.');
+      }
+    }
   }
 }
